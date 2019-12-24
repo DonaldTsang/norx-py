@@ -1,14 +1,13 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """
    Test vectors for NORX.
    ------
 
-   :author: Philipp Jovanovic <philipp@jovanovic.io>, 2014-2015.
+   :author: Donald Tsang
    :license: CC0, see LICENSE for more details.
 """
 
 from norx import NORX
-
 
 def vectors_G(w, i):
     x = {32: [(0x00000001, 0x00000000, 0x00000000, 0x00000000),
@@ -45,7 +44,6 @@ def vectors_G(w, i):
               (0xA15E9AA4D3881354, 0xF042F1E89CECFFD3, 0x2C3DF0918FBD9D82, 0xE3104F8E503EEEB7),
               (0xF487F38AFF72BCE1, 0x99081BA0BCA194B5, 0x2B8AA44DCF5F3898, 0x8F7C4CF6C564757A)]}
     return x[w][i]
-
 
 def vectors_F(w, i):
     x = {32: [(0x00000001, 0x00000000, 0x00000000, 0x00000000,
@@ -209,44 +207,41 @@ def vectors_F(w, i):
                0x0D4EA16E832DA7F3, 0xAE57C79E053DF9C2, 0xCC9358DDA6A3320C, 0xD45F711CE4BDDE7C)]}
     return x[w][i]
 
-
 def test_G():
     # check G function
     for ws in [32, 64]:
         norx = NORX(w=ws)
-        x = [1, 0, 0, 0]
-        for i in xrange(16):
+        x = [1] + ([0] * 3)
+        for i in range(16):
             assert vectors_G(ws, i) == tuple(x)
             x[0], x[1], x[2], x[3] = norx.G(*x)
-        print 'NORX{}, G: tests passed.'.format(ws)
-
+        print('NORX{}, G: tests passed.'.format(ws))
 
 def test_F():
     # check F function
     for ws in [32, 64]:
         norx = NORX(w=ws)
-        x = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        for i in xrange(16):
+        x = [1] + ([0] * 15)
+        for i in range(16):
             assert vectors_F(ws, i) == tuple(x)
             norx.F(x)
-        print 'NORX{}, F: tests passed.'.format(ws)
-
+        print('NORX{}, F: tests passed.'.format(ws))
 
 def kat():
     ml, hl, kl, nl = 256, 256, 32, 16
-    m = b''.join([chr(255 & (i*197 + 123)) for i in xrange(ml)])
-    h = b''.join([chr(255 & (i*193 + 123)) for i in xrange(hl)])
-    k = b''.join([chr(255 & (i*191 + 123)) for i in xrange(kl)])
-    n = b''.join([chr(255 & (i*181 + 123)) for i in xrange(nl)])
+    m = b''.join([bytes([255 & (i*197 + 123)]) for i in range(ml)])
+    h = b''.join([bytes([255 & (i*193 + 123)]) for i in range(hl)])
+    k = b''.join([bytes([255 & (i*191 + 123)]) for i in range(kl)])
+    n = b''.join([bytes([255 & (i*181 + 123)]) for i in range(nl)])
     for pw in [32, 64]:
         norx = NORX(pw, 4, 1, 4*pw)
-        for i in xrange(len(m)):
-            c = norx.aead_encrypt(h[:i], m[:i], '', n[:2*pw/8], k[:4*pw/8])
-            o = norx.aead_decrypt(h[:i], c, '', n[:2*pw/8], k[:4*pw/8])
+        for i in range(len(m)):
+            c = norx.aead_encrypt(h[:i], m[:i], b'', n[:2*pw//8], k[:4*pw//8])
+            o = norx.aead_decrypt(h[:i], c, b'', n[:2*pw//8], k[:4*pw//8])
             assert len(o) == len(m[:i])
-            for j in xrange(len(m[:i])):
+            for j in range(len(m[:i])):
                 assert o[j] == m[j]
-        print 'NORX{}, enc/dec: tests passed.'.format(pw)
+        print('NORX{}, enc/dec: tests passed.'.format(pw))
 
 
 if __name__ == '__main__':
