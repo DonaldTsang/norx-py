@@ -1,13 +1,12 @@
 """
-   Python2 implementation of NORX.
+   Python3 implementation of NORX.
    ------
 
-   :author: Philipp Jovanovic <philipp@jovanovic.io>, 2014-2015.
+   :author: Donald Tsang
    :license: CC0, see LICENSE for more details.
 """
 
 from struct import pack, unpack
-
 
 class NORX(object):
 
@@ -31,9 +30,9 @@ class NORX(object):
         self.FINAL_TAG = 1 << 3
         self.BRANCH_TAG = 1 << 4
         self.MERGE_TAG = 1 << 5
-        self.BYTES_WORD = w / 8
-        self.BYTES_TAG = t / 8
-        self.WORDS_RATE = self.RATE / w
+        self.BYTES_WORD = w // 8
+        self.BYTES_TAG = t // 8
+        self.WORDS_RATE = self.RATE // w
         self.BYTES_RATE = self.WORDS_RATE * self.BYTES_WORD
         if w == 32:
             self.R = (8, 11, 16, 31)
@@ -84,7 +83,7 @@ class NORX(object):
         S[3], S[4], S[9], S[14] = self.G(S[3], S[4], S[9], S[14])
 
     def permute(self, S):
-        for i in xrange(self.NORX_R):
+        for i in range(self.NORX_R):
             self.F(S)
 
     def pad(self, x):
@@ -96,8 +95,8 @@ class NORX(object):
 
     def init(self, S, n, k):
         b = self.BYTES_WORD
-        K = [self.load(k[b*i:b*(i+1)]) for i in xrange(self.NORX_K / self.NORX_W)]
-        N = [self.load(n[b*i:b*(i+1)]) for i in xrange(self.NORX_N / self.NORX_W)]
+        K = [self.load(k[b*i:b*(i+1)]) for i in range(self.NORX_K // self.NORX_W)]
+        N = [self.load(n[b*i:b*(i+1)]) for i in range(self.NORX_N // self.NORX_W)]
         U = self.U
         S[0], S[1], S[2], S[3] = U[0], N[0], N[1], U[1]
         S[4], S[5], S[6], S[7] = K[0], K[1], K[2], K[3]
@@ -132,7 +131,7 @@ class NORX(object):
         b = self.BYTES_WORD
         self.inject_tag(S, tag)
         self.permute(S)
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             S[i] ^= self.load(x[b*i:b*(i+1)])
 
     def absorb_lastblock(self, S, x, tag):
@@ -156,7 +155,7 @@ class NORX(object):
         b = self.BYTES_WORD
         self.inject_tag(S, self.PAYLOAD_TAG)
         self.permute(S)
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             S[i] ^= self.load(x[b*i:b*(i+1)])
             c += self.store(S[i])
         return c[:self.BYTES_RATE]
@@ -183,7 +182,7 @@ class NORX(object):
         b = self.BYTES_WORD
         self.inject_tag(S, self.PAYLOAD_TAG)
         self.permute(S)
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             c = self.load(x[b*i:b*(i+1)])
             m += self.store(S[i] ^ c)
             S[i] = c
@@ -195,12 +194,12 @@ class NORX(object):
         b = self.BYTES_WORD
         self.inject_tag(S, self.PAYLOAD_TAG)
         self.permute(S)
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             y += self.store(S[i])
         y[:len(x)] = bytearray(x)
         y[len(x)] ^= 0x01
         y[self.BYTES_RATE-1] ^= 0x80
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             c = self.load(y[b*i:b*(i+1)])
             m += self.store(S[i] ^ c)
             S[i] = c
@@ -211,13 +210,13 @@ class NORX(object):
         self.inject_tag(S, self.FINAL_TAG)
         self.permute(S)
         self.permute(S)
-        for i in xrange(self.WORDS_RATE):
+        for i in range(self.WORDS_RATE):
             t += self.store(S[i])
         return t[:self.BYTES_TAG]
 
     def verify_tag(self, t0, t1):
         acc = 0
-        for i in xrange(self.BYTES_TAG):
+        for i in range(self.BYTES_TAG):
             acc |= t0[i] ^ t1[i]
         return (((acc - 1) >> 8) & 1) - 1
 
@@ -231,7 +230,7 @@ class NORX(object):
         c += self.encrypt_data(S, m)
         self.process_trailer(S, t)
         c += self.generate_tag(S)
-        return str(c)
+        return c
 
     def aead_decrypt(self, h, c, t, n, k):
         assert len(k) == self.NORX_K / 8
@@ -248,5 +247,5 @@ class NORX(object):
         self.process_trailer(S, t)
         t1 = self.generate_tag(S)
         if self.verify_tag(t0, t1) != 0:
-            m = ''
-        return str(m)
+            m = b''
+        return m
